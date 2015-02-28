@@ -1,6 +1,6 @@
 module Rack
   class Transaction
-    VERSION = "0.1.0"
+    VERSION = "0.1.0".freeze
 
     def initialize(inner, settings)
       @inner = inner
