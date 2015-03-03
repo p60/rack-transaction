@@ -87,79 +87,85 @@ describe Rack::Transaction::Configuration do
 
   describe '#successful?' do
     it 'is unsuccessful for a response with a client error' do
-      subject.successful?({}, 400, {}, []).must_equal false
+      response = Rack::Response.new [], 400, {}
+      subject.successful?({}, response).must_equal false
     end
 
     it 'is unsuccessful for a response with a server error' do
-      subject.successful?({}, 500, {}, []).must_equal false
+      response = Rack::Response.new [], 500, {}
+      subject.successful?({}, response).must_equal false
     end
 
     it 'is unsuccessful for a validation error' do
       validation_args = nil
-      env, status, headers, body = {'somthing' => 'important'}, 200, {'REQUEST_METHOD' => 'DELETE'}, []
+      env = {}
+      response = Rack::Response.new [], 200, {}
 
       subject.ensure_success_with { |*args| validation_args = args; false }
-      subject.successful?(env, status, headers, body).must_equal false
+      subject.successful?(env, response).must_equal false
 
 
       validation_args.length.must_equal 2
       env_arg, response_arg = validation_args
       env_arg.must_equal env
-      response_arg.status.must_equal status
-      response_arg.headers.must_equal headers
-      response_arg.body.must_equal body
+      response_arg.must_equal response
     end
 
     it 'is successful' do
-      subject.successful?({}, 200, {}, []).must_equal true
+      response = Rack::Response.new [], 200, {}
+      subject.successful?({}, response).must_equal true
     end
   end
 
   describe 'with defaults' do
-    it 'accepts env' do
-      subject.accepts?(env).must_equal true
+    let(:request){ Rack::Request.new env }
+
+    it 'accepts request' do
+      subject.accepts?(request).must_equal true
     end
 
     %w{DELETE POST PUT}.each do |method|
-      it "accepts env of #{method} request" do
+      it "accepts #{method} request" do
         env['REQUEST_METHOD'] = method
-        subject.accepts?(env).must_equal true
+        subject.accepts?(request).must_equal true
       end
     end
 
     %w{GET HEAD OPTIONS}.each do |method|
-      it "wont accept env of #{method} request" do
+      it "wont accept #{method} request" do
         env['REQUEST_METHOD'] = method
-        subject.accepts?(env).must_equal false
+        subject.accepts?(request).must_equal false
       end
     end
   end
 
   describe 'with inclusion' do
     let(:env){ {'REQUEST_METHOD' => 'GET'} }
+    let(:request){ Rack::Request.new env }
 
     it 'returns self' do
       result = subject.include(&:get?)
       result.must_equal subject
     end
 
-    it 'accepts env' do
+    it 'accepts request' do
       subject.include(&:get?)
-      subject.accepts?(env).must_equal true
+      subject.accepts?(request).must_equal true
     end
   end
 
   describe 'with exclusion' do
     let(:env){ {'REQUEST_METHOD' => 'POST'} }
+    let(:request){ Rack::Request.new env }
 
     it 'returns self' do
       result = subject.exclude(&:post?)
       result.must_equal subject
     end
 
-    it 'wont accept excluded env' do
+    it 'wont accept excluded request' do
       subject.exclude(&:post?)
-      subject.accepts?(env).must_equal false
+      subject.accepts?(request).must_equal false
     end
   end
 end

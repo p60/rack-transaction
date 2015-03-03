@@ -46,13 +46,11 @@ module Rack
         self
       end
 
-      def accepts?(env)
-        request = Request.new env
+      def accepts?(request)
         @excluders.all?{|x| !x.call(request)} || @includers.any?{|x| x.call(request)}
       end
 
-      def successful?(env, status, headers, body)
-        response = Response.new body, status, headers
+      def successful?(env, response)
         !response.client_error? && !response.server_error? && (success_validation.nil? || success_validation.call(env, response))
       end
 
