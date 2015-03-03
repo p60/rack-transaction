@@ -22,27 +22,31 @@ gem install rack-transaction
 Add the following:
 
 ```ruby
-use Rack::Transaction,
-  provider: Sequel.connect('sqlite:///')  #required
-  rollback: Sequel::Rollback              #required (it also accepts the string version of the constant)
+use Rack::Transaction do
+  provided_by Sequel.connect('sqlite:///')  #required
+  rollback_with Sequel::Rollback            #required (it also accepts the string version of the constant)
+end
 ```
 
-Do note that `:rollback` will use the type specified to raise an error, which
-in turn, causes the transaction to rollback. Depending on the `:provider`
-providing the transaction, you may want to specify an error type provided by
-the library being used to allow for more graceful error handling. For example,
-Sequel has `Sequel::Rollback` and ActiveRecord has `ActiveRecord::Rollback`.
+Do note that `rollback_with` will use the type specified to raise an error,
+which in turn, causes the transaction to rollback. Depending on the provider,
+passed into `provided_by`, providing the transaction, you may want to specify
+an error type provided by the library being used to allow for more graceful
+error handling. For example, Sequel has `Sequel::Rollback` and ActiveRecord has
+`ActiveRecord::Rollback`.
 
-It also supports an optional error callback to check for errors in the
-environment outside of the normal client or server errors. For example, Sinatra
-sets `sinatra.error` on the `env` in the event of an error, so we'll probably
-want to rollback.  We can check for this by specifying the `:error` setting.
+It also supports an optional callback to validate that an action was
+successful, even if it wasn't recognized as a client or server error. For
+example, Sinatra sets `sinatra.error` on the `env` in the event of an error, so
+we'll probably want to rollback.  We can specify the validation callback with
+`ensure_success_with`. The callback will have the `env` and `Rack::Response`
+passed to it as arguments.
 
 ```ruby
-use Rack::Transaction,
-  provider: Sequel.connect('sqlite:///')
-  rollback: Sequel::Rollback
-  error: ->(env){ env['sinatra.error'] }
+use Rack::Transaction do
+  provided_by Sequel.connect('sqlite:///')
+  rollback_with Sequel::Rollback
+  ensure_success_with { |env, response| env['sinatra.error'] }
 ```
 
 ## Contributing
