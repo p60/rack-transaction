@@ -34,7 +34,7 @@ module Rack
 
     def successful?(env, status, headers, body)
       response = Response.new body, status, headers
-      config.successful?(env, response)
+      config.successful?(response, env)
     end
 
     def rollback

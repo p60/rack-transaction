@@ -95,12 +95,12 @@ describe Rack::Transaction::Configuration do
   describe '#successful?' do
     it 'is unsuccessful for a response with a client error' do
       response = Rack::Response.new [], 400, {}
-      subject.successful?({}, response).must_equal false
+      subject.successful?(response, {}).must_equal false
     end
 
     it 'is unsuccessful for a response with a server error' do
       response = Rack::Response.new [], 500, {}
-      subject.successful?({}, response).must_equal false
+      subject.successful?(response, {}).must_equal false
     end
 
     it 'is unsuccessful for a validation error' do
@@ -109,18 +109,18 @@ describe Rack::Transaction::Configuration do
       response = Rack::Response.new [], 200, {}
 
       subject.ensure_success_with { |*args| validation_args = args; false }
-      subject.successful?(env, response).must_equal false
+      subject.successful?(response, env).must_equal false
 
 
       validation_args.length.must_equal 2
-      env_arg, response_arg = validation_args
-      env_arg.must_equal env
+      response_arg, env_arg = validation_args
       response_arg.must_equal response
+      env_arg.must_equal env
     end
 
     it 'is successful' do
       response = Rack::Response.new [], 200, {}
-      subject.successful?({}, response).must_equal true
+      subject.successful?(response, {}).must_equal true
     end
   end
 

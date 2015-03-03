@@ -53,8 +53,8 @@ module Rack
         @excluders.all?{|x| !x.call(request)} || @includers.any?{|x| x.call(request)}
       end
 
-      def successful?(env, response)
-        !response.client_error? && !response.server_error? && (success_validation.nil? || success_validation.call(env, response))
+      def successful?(response, env)
+        !response.client_error? && !response.server_error? && (success_validation.nil? || success_validation.call(response, env))
       end
 
       def validate!
