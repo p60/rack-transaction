@@ -20,21 +20,28 @@ describe Rack::Transaction::Configuration do
   end
 
   describe "#rollback_with" do
-    it 'sets rollback_error to kind of Module' do
-      rollback_error = Object
+    it 'sets rollback_error StandardError' do
+      rollback_error = StandardError
+      result = subject.rollback_with rollback_error
+      result.must_equal subject
+      subject.rollback_error.must_equal rollback_error
+    end
+
+    it 'sets rollback_error StandardError subclass' do
+      rollback_error = RuntimeError
       result = subject.rollback_with rollback_error
       result.must_equal subject
       subject.rollback_error.must_equal rollback_error
     end
 
     it 'sets rollback_error with String' do
-      rollback_error = 'Object'
+      rollback_error = 'RuntimeError'
       result = subject.rollback_with rollback_error
       result.must_equal subject
       subject.rollback_error.must_equal rollback_error
     end
 
-    it 'raises when rollback_error not String or Module' do
+    it 'raises when rollback_error not String or StandardError' do
       proc {
         subject.rollback_with Object.new
       }.must_raise Rack::Transaction::Configuration::InvalidRollbackError
@@ -64,7 +71,7 @@ describe Rack::Transaction::Configuration do
 
     it 'raises when provider not configured' do
       config = subject.new do
-        rollback_with(Object)
+        rollback_with(StandardError)
       end
       proc { config.validate! }.must_raise Rack::Transaction::Configuration::Invalid
     end
@@ -79,7 +86,7 @@ describe Rack::Transaction::Configuration do
     it 'wont raise when valid' do
       config = subject.new do
         provided_by(Class.new { def self.transaction; end })
-        rollback_with(Object)
+        rollback_with(StandardError)
       end
       config.validate!
     end

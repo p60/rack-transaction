@@ -23,8 +23,8 @@ module Rack
       end
 
       def rollback_with(value)
-        if !value.is_a?(String) && !value.is_a?(Module)
-          raise InvalidRollbackError, 'Rollback must be a valid type'
+        unless (value.is_a?(Class) && (value <= StandardError)) || value.is_a?(String)
+          raise InvalidRollbackError, 'Rollback error must be a valid StandardError type'
         end
         @rollback_error = value
         self
