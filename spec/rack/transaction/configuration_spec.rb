@@ -41,19 +41,19 @@ describe Rack::Transaction::Configuration do
     end
   end
 
-  describe "#validate_with" do
-    it 'sets response_validation' do
+  describe "#ensure_success_with" do
+    it 'sets success_validation' do
       callable = nil
-      result = subject.validate_with {|response, env| callable = true}
+      result = subject.ensure_success_with {|response, env| callable = true}
       result.must_equal subject
 
-      subject.response_validation.call
+      subject.success_validation.call
       callable.must_equal true
     end
 
-    it 'raises when response_validation does not respond to :call' do
+    it 'raises when success_validation does not respond to :call' do
       proc {
-        subject.validate_with
+        subject.ensure_success_with
       }.must_raise Rack::Transaction::Configuration::InvalidResponseValidation
     end
   end
@@ -82,6 +82,36 @@ describe Rack::Transaction::Configuration do
         rollback_with(Object)
       end
       config.validate!
+    end
+  end
+
+  describe '#successful?' do
+    it 'is unsuccessful for a response with a client error' do
+      subject.successful?({}, 400, {}, []).must_equal false
+    end
+
+    it 'is unsuccessful for a response with a server error' do
+      subject.successful?({}, 500, {}, []).must_equal false
+    end
+
+    it 'is unsuccessful for a validation error' do
+      validation_args = nil
+      env, status, headers, body = {'somthing' => 'important'}, 200, {'REQUEST_METHOD' => 'DELETE'}, []
+
+      subject.ensure_success_with { |*args| validation_args = args; false }
+      subject.successful?(env, status, headers, body).must_equal false
+
+
+      validation_args.length.must_equal 2
+      env_arg, response_arg = validation_args
+      env_arg.must_equal env
+      response_arg.status.must_equal status
+      response_arg.headers.must_equal headers
+      response_arg.body.must_equal body
+    end
+
+    it 'is successful' do
+      subject.successful?({}, 200, {}, []).must_equal true
     end
   end
 

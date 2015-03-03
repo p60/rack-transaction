@@ -6,7 +6,7 @@ module Rack
       class InvalidRollbackError < StandardError; end
       class InvalidResponseValidation < StandardError; end
 
-      attr_reader :provider, :rollback_error, :response_validation
+      attr_reader :provider, :rollback_error, :success_validation
 
       def initialize(&block)
         @includers = []
@@ -30,17 +30,10 @@ module Rack
         self
       end
 
-      def validate_with(&validation)
+      def ensure_success_with(&validation)
         raise InvalidResponseValidation, 'Response validation must respond to call' unless validation.respond_to?(:call)
-        @response_validation = validation
+        @success_validation = validation
         self
-      end
-
-      def validate!
-        missing = []
-        missing << 'provider' unless provider
-        missing << 'rollback_error' unless rollback_error
-        raise Invalid, "Missing #{missing.join ' & '}" if missing.any?
       end
 
       def include(&block)
@@ -56,6 +49,18 @@ module Rack
       def accepts?(env)
         request = Request.new env
         @excluders.all?{|x| !x.call(request)} || @includers.any?{|x| x.call(request)}
+      end
+
+      def successful?(env, status, headers, body)
+        response = Response.new body, status, headers
+        !response.client_error? && !response.server_error? && (success_validation.nil? || success_validation.call(env, response))
+      end
+
+      def validate!
+        missing = []
+        missing << 'provider' unless provider
+        missing << 'rollback_error' unless rollback_error
+        raise Invalid, "Missing #{missing.join ' & '}" if missing.any?
       end
 
       private
