@@ -5,9 +5,11 @@ module Rack
   class Transaction
     attr_reader :config
 
-    def initialize(inner, &block)
+    def initialize(inner, configuration=nil, &block)
       @inner = inner
-      @config = Configuration.new(&block)
+      @config = configuration || Configuration.new
+
+      config.setup(&block)
     end
 
     def call(env)

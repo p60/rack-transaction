@@ -6,14 +6,15 @@ describe Rack::Transaction do
   let(:table_name){ :rack }
   let(:dataset){ connection[table_name] }
   let(:error){ Sequel::Rollback }
-
-  subject do
+  let(:config){
     context = self
-    Rack::Transaction.new inner do
+    Rack::Transaction::Configuration.new do
       provided_by context.connection
       rollback_with context.error
     end
-  end
+  }
+
+  subject { Rack::Transaction.new inner, config }
 
   before do
     connection.create_table table_name do
@@ -62,7 +63,10 @@ describe Rack::Transaction do
   end
 
   it 'ensures valid configuration' do
-    middleware = Rack::Transaction.new inner
+    context = self
+    middleware = Rack::Transaction.new inner do
+      provided_by context.connection
+    end
     proc { middleware.call env }.must_raise Rack::Transaction::Configuration::Invalid
   end
 end
