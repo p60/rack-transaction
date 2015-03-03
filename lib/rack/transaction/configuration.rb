@@ -3,6 +3,7 @@ module Rack
     class Configuration
       class Invalid < StandardError; end
       class InvalidProvider < StandardError; end
+      class InvalidRollbackError < StandardError; end
       class InvalidResponseValidation < StandardError; end
 
       attr_reader :provider, :rollback_error, :response_validation
@@ -22,6 +23,9 @@ module Rack
       end
 
       def rollback_with(value)
+        if !value.is_a?(String) && !value.is_a?(Module)
+          raise InvalidRollbackError, 'Rollback must be a valid type'
+        end
         @rollback_error = value
         self
       end

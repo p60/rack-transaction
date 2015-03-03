@@ -20,11 +20,24 @@ describe Rack::Transaction::Configuration do
   end
 
   describe "#rollback_with" do
-    it 'sets rollback_error' do
+    it 'sets rollback_error to kind of Module' do
       rollback_error = Object
       result = subject.rollback_with rollback_error
       result.must_equal subject
       subject.rollback_error.must_equal rollback_error
+    end
+
+    it 'sets rollback_error with String' do
+      rollback_error = 'Object'
+      result = subject.rollback_with rollback_error
+      result.must_equal subject
+      subject.rollback_error.must_equal rollback_error
+    end
+
+    it 'raises when rollback_error not String or Module' do
+      proc {
+        subject.rollback_with Object.new
+      }.must_raise Rack::Transaction::Configuration::InvalidRollbackError
     end
   end
 
