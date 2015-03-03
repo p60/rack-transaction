@@ -1,40 +1,44 @@
+require 'rack/transaction/version'
+require 'rack/transaction/configuration'
+
 module Rack
   class Transaction
-    VERSION = "0.1.0".freeze
+    attr_reader :config
 
-    def initialize(inner, settings)
+    def initialize(inner, &block)
       @inner = inner
-      @provider = settings.fetch(:provider)
-      @rollback = settings.fetch(:rollback)
-      @error = settings[:error]
+      @config = Configuration.new(&block)
     end
 
     def call(env)
+      config.validate!
+
       return @inner.call(env) unless use_transaction?(env)
 
       result = nil
-      @provider.transaction do
+      config.provider.transaction do
         result = @inner.call(env)
-        rollback if has_error?(env, *result)
+        rollback unless successful?(env, *result)
       end
       result
     end
 
     private
 
-    def has_error?(env, status, headers, body)
+    def use_transaction?(env)
+      request = Request.new env
+      config.accepts?(request)
+    end
+
+    def successful?(env, status, headers, body)
       response = Response.new body, status, headers
-      response.client_error? || response.server_error? || (@error.respond_to?(:call) && @error.call(env))
+      config.successful?(env, response)
     end
 
     def rollback
-      klass = @rollback.is_a?(String) ? Object.const_get(@rollback) : @rollback
+      error = config.rollback_error
+      klass = error.is_a?(String) ? Object.const_get(error) : error
       raise klass
-    end
-
-    def use_transaction?(env)
-      request = Request.new env
-      !(request.get? || request.head? || request.options?)
     end
   end
 end
