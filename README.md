@@ -22,6 +22,17 @@ gem install rack-transaction
 Add the following:
 
 ```ruby
+config = Rack::Transaction::Configuration.new do
+  provided_by Sequel.connect('sqlite:///')  #required
+  rollback_with Sequel::Rollback            #required (it also accepts the string version of the constant)
+end
+
+use Rack::Transaction, config
+```
+
+or, with the shorthand form:
+
+```ruby
 use Rack::Transaction do
   provided_by Sequel.connect('sqlite:///')  #required
   rollback_with Sequel::Rollback            #required (it also accepts the string version of the constant)
@@ -39,15 +50,38 @@ It also supports an optional callback to validate that an action was
 successful, even if it wasn't recognized as a client or server error. For
 example, Sinatra sets `sinatra.error` on the `env` in the event of an error, so
 we'll probably want to rollback.  We can specify the validation callback with
-`ensure_success_with`. The callback will have the `env` and `Rack::Response`
+`ensure_success_with`. The callback will have the `Rack::Response` and `env`
 passed to it as arguments.
 
 ```ruby
 use Rack::Transaction do
   provided_by Sequel.connect('sqlite:///')
   rollback_with Sequel::Rollback
-  ensure_success_with { |env, response| env['sinatra.error'] }
+  ensure_success_with { |response, env| env['sinatra.error'] }
 ```
+
+### Configuration
+
+By default, `Rack::Transaction` will wrap all requests except for request of
+methods GET, HEAD, & OPTION. It also provides away to include or exclude
+certain requests from participating in the transaction. This is done by passing
+in a block to `include` or `exclude` to the configuration. The block can expect
+a `Rack::Request` instance to be used to determine whether or not to include or
+exclude said request. For example, you may want to wrap a GET request in a
+transaction, because the action it routes to is handling the final leg of
+OAauth authorization and saving the refresh token as well as other business
+logic.
+
+```ruby
+use Rack::Transaction do
+  // other config stuff
+
+  include { |request| request.path =~ %r{/oauth/callback$}i }
+  exclude { |request| request.path =~ %r{/search$}i }
+end
+```
+
+Do note that includes take priority over any excludes specified.
 
 ## Contributing
 
